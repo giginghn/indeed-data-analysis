@@ -1,0 +1,106 @@
+---
+title: Final Poster
+author:
+  - name: Tiffany Hsu
+    affil: 1
+  - name: Tuyen Bich Duong
+    affil: 2
+  - name: Shami Shaji
+    affil: 3
+  - name: Huynh Truc Giang Nguyen
+    affil: 4
+  - name: Yaohua Liu
+    affil: 5
+  - name: Christina Indudhara
+    affil: 6
+affiliation:
+  - num: 1
+    address: Department of Statistics, UCLA
+# - num: 2
+#   address: Some other affiliation
+column_numbers: 3
+font_family: Times New Roman
+body_bgcol: "#FFFFFF"
+body_textcol: "#696969"
+secondary_colour: "#696969"
+primary_colour: "#FFFAFA"
+title_textcol: "#000000"
+sectitle_textcol: "#000000"
+author_textcol: "#808080"
+affiliation_textcol: "#808080"
+logoleft_name: http&#58;//www.firststar.org/wp-content/uploads/2015/02/ucla1.jpg
+## https://ev0awwmgj4-flywheel.netdna-ssl.com/wp-content/uploads/images/products/products-University-of-CA-Los-Angeles-Seal.jpg
+output: 
+  posterdown::posterdown_html:
+    self_contained: true
+bibliography: packages.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# I. Introduction
+
+When it comes to job posting, posting age, income, description word counts and timing are the most important factors that define the attractiveness of a listing - number of clicks. Therefore, employment-related search engine companies can focus on these factors to help companies optimize their job post while having good leads of highly-qualified candidates.
+
+# II. Objective
+
+To calculate summary statistics to see what factors influence the number of clicks.
+
+# III. Methods
+
+1. Using boxplot to show the difference between word count buckets and relationship of salary interval to average clicks based on word count.  
+
+2. Analyzed time series and plotted live plot to detect seasonality in trends.  
+
+3. Analyzed time series and plotted live plot to determine relationship between job posting age and number of clicks.  
+
+
+# IV. Graphs 
+<br>
+```{r, out.width="110%", out.height="400%", fig.align='center'}
+knitr::include_graphics("wordcount.png")
+```
+<br>
+```{r, out.width="100%", out.height="200%", fig.align='center'}
+knitr::include_graphics("seasonality.png")
+```
+<br>
+```{r, out.width="100%", out.height="200%", fig.show='hold',fig.align='center'}
+knitr::include_graphics(c("jobage.png","jobage1.png"))
+cat("\\pagebreak")
+```
+
+# V. Results
+
+Based on our analysis, we obtain the following key findings:  
+
+1. For those jobs with salaries less than 165000, as the job description becomes longer, fewer clicks are made. For those jobs with salary > 165000, average clicks do not change much despite the length of the job description. These jobs might be highly technical or skillful and provide detailed information about the position, compensation, and requirements. In addition, high salary usually attracts many qualified candidates.  
+
+2. As the companies are rated higher, both average total clicks and average local clicks tend to be increasing.  
+
+3. There are more daily average clicks during the summer months and during the end of the year/ early beginning of the new year. These are trends that follow with most jobseekers, specifically, college students.  
+
+4. After the first 25 days that a job as been posted, the number of daily clicks goes down drastically. After taking a closer look into the first 25 days, it’s clear that there’s a drastic drop in the number of views by the third day to the fifth day.
+
+# VI. Conclusion
+
+From the results of our analysis, we can make a few recommendations to companies aiming to increase number of clicks on their job postings.  
+
+1. For jobs with salaries under 165,000, keeping job description word count within 600 words maximizes results, while word count matters less for jobs with salaries over 165,000.  
+
+2. Keeping in mind company reviews and ratings in marketing, publicity and HR strategies would also result in increased number of clicks.  
+
+3. Companies know which timeframe to post their jobs to attract more qualified candidates, i.e. during the summer months and the end of the old year/early beginning of the new year. Indeed can also send more invitations to encourage companies post more jobs during these times.  
+
+4. Companies may also benefit by reposting their jobs after at most 25 days to keep increasing their number of applicants.
+
+```{r, include=FALSE}
+knitr::write_bib(c('knitr','rmarkdown','posterdown','pagedown'), 'packages.bib')
+```
+
+# Acknowledgements
+
+Special thanks to Madison Hobbs for access to the Indeed dataset, GitHub Inc., and to collaborators, Tiffany Hsu, Tuyen Bich Duong, Shami Shaji, Huynh Truc Giang Nguyen, Yaohua Liu and Christina Indudhara.
+

@@ -1,0 +1,288 @@
+---
+title: "Indeed Data Analysis"
+author: "Team Members: Tuyen Bich Duong, Giang Nguyen, Bruce Liu, Tiffany Hsu, Bruce Liu, Christina Indudhara"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+#### Import data, filter country = US AND state = CA
+
+```{r}
+# Run all library
+library(data.table)
+library(dplyr)
+library(tidyr)
+library(plotly)
+
+data5K <- read.csv("https://raw.githubusercontent.com/MadHobbs/DataFest2018/master/DataFest%202018%20small%20data/data5K.csv?fbclid=IwAR0iQL_pmakk05QUrkrrNuCcifAJs4-2FYqSti6u4-pmMxNtwpFy4NC1qLs")
+
+df <- data5K %>% filter(country == "US", stateProvince == "CA")  # filter US and CA state
+```
+
+
+#### Analysis: Association between average overall rating and number of clicks
+
+```{r}
+# group by companyId and compute their average rating
+summ <- df %>% group_by(companyId) %>%       
+  summarise(rate = mean(avgOverallRating), click = mean(clicks), local = mean(localClicks))
+
+# group rating into intervals
+summ$rate_grp <- numeric(nrow(summ))       
+summ[summ$rate == 0, ][, "rate_grp"] <- 0
+summ[summ$rate > 0 & summ$rate <= 1, ][, "rate_grp"] <- 1
+summ[summ$rate > 1 & summ$rate <= 2, ][, "rate_grp"] <- 2
+summ[summ$rate > 2 & summ$rate <= 3, ][, "rate_grp"] <- 3
+summ[summ$rate > 3 & summ$rate <= 4, ][, "rate_grp"] <- 4
+summ[summ$rate > 4, ][, "rate_grp"] <- 5
+
+# For each rating interval, find the average clicks
+summ2 <- summ %>% group_by(rate_grp) %>% 
+  summarise(`Total clicks` = mean(click), `Local clicks` = mean(local))%>% 
+  gather("labl", "val", -rate_grp) %>% filter(rate_grp != 0)
+
+
+# Plots rating interval vs average clicks
+p <- ggplot(data = summ2, aes(x = rate_grp, y = val, group = labl)) +
+  geom_line(aes(color=labl))+
+  geom_point(aes(color=labl)) + 
+  scale_x_continuous(breaks=1:5,
+        labels=c("(0-1]", "(1-2]", "(2-3]", "(3-4]", "(4-5]")) + 
+  labs(title = "Average clicks by company's overall rating",
+       x = "Rate interval",
+       y = "Average clicks")
+p 
+```
+
+As the companies are rated higher, both average total clicks and average local clicks tend to be inceasing. 
+
+#### Analysis: Association between job description's length and number of clicks (Job salary < 165k)
+
+```{r warning=FALSE}
+
+# Compute mean clicks, mean salary for each job
+s <- df %>%              
+  group_by(jobId) %>% 
+  summarise(avg_words = mean(descriptionWordCount),
+            avg_salary = sum(estimatedSalary), 
+            avg_clicks = mean(clicks),
+            avg_local_clicks = mean(localClicks))
+
+# Group job desciption word count 
+s$words_grp <- as.numeric(nrow(s))
+s[s$avg_words > 0 & s$avg_words <= 300, ][, "words_grp"] <- 1
+s[s$avg_words > 300 & s$avg_words <= 600, ][, "words_grp"] <- 2
+s[s$avg_words > 600, ][, "words_grp"] <- 3
+
+# Group salary 
+s$`Salary interval` <- as.character(nrow(s))
+s[s$avg_salary > 15000 & s$avg_salary <= 45000, ][, "Salary interval"] <- "15k-45k"
+s[s$avg_salary > 45000 & s$avg_salary <= 75000, ][, "Salary interval"] <- "45k-75k"
+s[s$avg_salary > 75000 & s$avg_salary <= 105000, ][, "Salary interval"] <- "75k-105k"
+s[s$avg_salary > 105000 & s$avg_salary <= 135000, ][, "Salary interval"] <- "105k-135k"
+s[s$avg_salary > 135000 & s$avg_salary <= 165000, ][, "Salary interval"] <- "135k-165k"
+s[s$avg_salary > 165000, ][, "Salary interval"] <- ">165k"
+
+# Subset jobs that have salary less than 165k
+s2 <- s %>% filter(avg_salary <= 165000)
+
+# Jitter boxplot: average clicks vs word count
+p1 <- ggplot(data = s2, aes(x = words_grp, y = avg_clicks, group = words_grp, 
+                     color = `Salary interval`)) +
+  geom_boxplot(fill=NA, alpha=0.5, color = "black", outlier.shape = NA) +
+  ylim(c(0, 150)) + 
+  geom_jitter(width=0.25, alpha=0.5) +
+  stat_summary(fun.y = mean, colour="darkred", geom="point", 
+               shape=18, size=3) + 
+  labs(title = "Average clicks by job description's length (salary <= 165k)",
+       x = "Word count",
+       y = "Average clicks") +
+  scale_x_continuous(breaks=1:3,
+        labels=c("(0-300]", "(300-600]", ">600")) 
+p1 
+```
+
+For those jobs with salaries less than 165000, as the job description becomes longer, fewer clicks are made. 
+
+#### Analysis: Association between job description's length and number of clicks (Job salary > 165k)
+
+```{r warning = FALSE}
+# Subset jobs that have salary> 165k
+s3 <- s %>% filter(avg_salary > 165000)
+p2 <- ggplot(data = s3, aes(x = words_grp, y = avg_clicks, group = words_grp)) +
+  geom_boxplot(fill=NA, alpha=0.5, color = "black", outlier.shape = NA) +
+  ylim(c(0, 150)) + 
+  geom_jitter(width=0.25, alpha=0.5, color = "darkgoldenrod2") +
+  stat_summary(fun.y = mean, colour="darkred", geom="point", 
+               shape=18, size=3) + 
+  labs(title = "Average clicks by job description's length (salary > 165k)",
+       x = "Word count",
+       y = "Average clicks") +
+  scale_x_continuous(breaks=1:3,
+        labels=c("(0-300]", "(300-600]", ">600"))
+p2
+
+
+```
+
+For those jobs with salary > 165000, average clicks do not change much despite the length of the job description. These jobs might be highly technical or skillful and provide detailed information about the position, compensation, and requirements. In addition, high salary usually attracts many qualified candidates. 
+
+
+#### Analysis: Experience Required
+```{r}
+library(ggplot2)
+summary(df$experienceRequired)
+summary(df$clicks)
+
+df_1 <- df %>% select(c(experienceRequired, clicks)) %>% na.omit()
+df_2 <- df_1 %>% mutate(experienceRequired = ceiling(experienceRequired))%>%
+  group_by(experienceRequired) %>%
+  summarise(Mean = mean(clicks), Median = median(clicks))
+df_2
+
+p <- ggplot(data=df_2, aes(x=experienceRequired)) + geom_line(aes(y=Mean, colour = "Mean"))+
+  geom_line(aes(y = Median, colour = "Median"))+
+  scale_colour_manual("", breaks = c("Mean", "Median"),values = c("red", "blue"))+
+  ggtitle('Clicks Based on Number of Years of Experience')+
+  labs(x = "Years of Experience", y = "Number of Clicks")
+
+p
+```
+
+
+#### Analysis: Job Title
+```{r}
+df_3 <- df %>% select(c(normTitleCategory, clicks)) %>% na.omit()
+df_4 <- df_3 %>% group_by(normTitleCategory) %>%
+  summarise(Mean = mean(clicks), Median = median(clicks)) %>%
+  arrange(desc(Mean))
+
+top10 <- df_4[1:10,]
+
+
+top10 <- data.frame(values = as.vector(t(top10[,2:3])), type = rep(c("Mean","Median"),10), title =rep(top10$normTitleCategory,each =2))
+
+g <- ggplot(data = top10, aes(x = title, y=values, fill = type)) + 
+  geom_bar(stat = "identity", position = "dodge")
+g + coord_flip() + ggtitle("Top 10 Most Clicked Job Categories By Mean") + labs(x = "Job Category", y = "Average Number of Clicks")
+```
+
+#### Analysis: Comparing daily average clicks by month
+
+```{r}
+##### analysis on which months have the highest clicks #####
+dates = as.Date(df$date)
+df['month'] = format(dates,"%m")
+
+sum_clicks_by_month = summarise_at(group_by(df,month),vars(clicks),funs(sum(.,na.rm=TRUE)))
+mean_clicks_by_month = summarise_at(group_by(df,month),vars(clicks),funs(mean(.,na.rm=TRUE)))
+
+# Line plot comparing months
+ggplot(data=mean_clicks_by_month, aes(x=month, y=clicks, group=1)) +
+  geom_line(color='purple')+
+  geom_point(color='purple') + ggtitle('Mean Daily Clicks Per Month') 
+```
+
+From the plot above, we can see that there are more daily average clicks during the summer months and during the end of the year/ early beginning of the new year. These are trends that follow with most jobseekers, specifically, college students. 
+
+##### Analysis: Comparing number of clicks by age of job posting
+```{r}
+##### job Age Days, group by bins of 0-25, 26-50, 51-75, 76-100 #####
+df['jobAgeDays_grps'] = 0
+
+for(i in 1:dim(df)[1]){
+  if (df['jobAgeDays'][i,] <= 25){
+    df['jobAgeDays_grps'][i,] = 1
+  }else if ((df['jobAgeDays'][i,] > 25) & (df['jobAgeDays'][i,] <= 50)){
+    df['jobAgeDays_grps'][i,] = 2
+  }else if ((df['jobAgeDays'][i,] > 50) & (df['jobAgeDays'][i,] <= 75)){
+    df['jobAgeDays_grps'][i,] = 3
+  }else if ((df['jobAgeDays'][i,] > 75) & (df['jobAgeDays'][i,] <= 100)){
+    df['jobAgeDays_grps'][i,] = 4
+  }
+}
+
+clicks_by_agebin = summarise_at(group_by(df,jobAgeDays_grps),vars(clicks),funs(mean(.,na.rm=TRUE)))
+med_clicks_by_agebin = summarise_at(group_by(df,jobAgeDays_grps),vars(clicks),funs(median(.,na.rm=TRUE)))
+ggplot(data=med_clicks_by_agebin, aes(x=jobAgeDays_grps, y=clicks, group=1, color="Median")) +
+  geom_line() + 
+  geom_line(data = clicks_by_agebin, aes(x=jobAgeDays_grps, y = clicks,group = 1, color = "Mean"), size = 0.5) +
+  ggtitle('Daily Clicks Per Job Age Bin') + labs(
+    x = "Job Age Bins (1= 0-25 days, 4 = 76-100 days)",
+    y = "Daily Clicks"
+  ) + scale_colour_manual(name="Metric", values=c(Mean="green", Median="blue"))
+```
+
+Clearly, after the first 25 days that a job as been posted, the number of daily clicks goes down drastically. Thus, I would recommend job posters to repost their jobs to keep increase their number of applicants.
+
+##### Analysis: Job Ages
+
+```{r}
+grp1 = df[df['jobAgeDays_grps'] == 1,]
+
+mean_clicks_grp1 = summarise_at(group_by(grp1,jobAgeDays),vars(clicks),funs(mean(.,na.rm=TRUE)))
+med_clicks_grp1 = summarise_at(group_by(grp1,jobAgeDays),vars(clicks),funs(median(.,na.rm=TRUE)))
+
+ggplot(data=mean_clicks_grp1, aes(x=jobAgeDays, y=clicks, group=1, color="Mean")) +
+  geom_line() + 
+  geom_line(data = med_clicks_grp1, aes(x=jobAgeDays, y = clicks,group = 1, color = "Median"), size = 0.5) +
+  ggtitle('Daily Clicks Per Job Age') + labs(
+    x = "Job Age",
+    y = "Daily Clicks"
+  ) + scale_colour_manual(name="Metric", values=c(Mean="orange", Median="purple"))
+```
+
+After taking a closer look into the first 25 days, it's clear that there's a drastic drop in the number of views by the third day to the fifth day.
+
+
+##### Analysis: Education level
+
+Below is the distribution of estimated salary and higher education for people from California.
+
+```{r}
+
+library(OneR)
+library(rowr)
+
+
+summary(df['estimatedSalary'])
+
+
+table(df['educationRequirements'])/(nrow(df))
+
+
+```
+
+```{r}
+
+hs = df[df$educationRequirements == 'High School', 'estimatedSalary']
+hedu = df[df$educationRequirements == 'Higher Education', 'estimatedSalary']
+noedu = df[df$educationRequirements == 'None', 'estimatedSalary']
+
+
+print('no ed')
+summary(noedu)
+print('high school')
+summary(hs)
+print('higher ed')
+summary(hedu)
+
+sal_and_edu = cbind(c(hs,rep(0, length(noedu)-length(hs))), c(hedu,rep(0, length(noedu)-length(hedu))), noedu)
+
+boxplot(hs,hedu,noedu, 
+        names = c('High School', 'Some Higher Education', 'No Education'),
+        main = "Estimated Salary for Different Levels of Education",
+        xlab = "Degree Completed",ylab = "Estimated Salary ($)",
+        col = c('salmon', 'lightseagreen', 'grey'))
+
+```
+
+Based onthe above output we see that as education requirements increase, salary does not necessarily increase.
+The median value of no education is higher than that of high school completed. 
+But higher education has a higher median value than those with no education or high school completed.
+The max values of the salaries with people from all education requirements appear to be starkingly different from their corresponding mean  and median values. 
+
