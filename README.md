@@ -1,3 +1,3 @@
 # Indeed data analysis
 
-Worked in a team of 6 UCLA Statistics students to compile meaningful analysis on Indeed - a leading job-posting platform and provided recommendations to further improve the job match between candidates and employers.
+Worked in a team of 6 UCLA Statistics students to analyze and present the Statistics capstone project on Indeed data to intiate recommendations for optimizing and addressing Tech job shortage problem.
